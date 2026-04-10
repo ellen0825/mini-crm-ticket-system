@@ -1,6 +1,7 @@
 # Mini CRM — Ticket System
 
-A mini CRM built with **Laravel 12** and **PHP 8.2+** featuring a universal embeddable feedback widget, a REST API, and a Blade-based admin panel.
+A mini CRM built with **Laravel 12** and **PHP 8.2+** featuring a universal
+embeddable feedback widget, a REST API, and a Blade-based admin panel.
 
 ---
 
@@ -10,51 +11,88 @@ A mini CRM built with **Laravel 12** and **PHP 8.2+** featuring a universal embe
 |---|---|
 | Framework | Laravel 12 |
 | PHP | 8.2+ |
-| Database | SQLite (default) / MySQL / PostgreSQL |
+| Database | SQLite (local) / MySQL (Docker / production) |
 | Role management | spatie/laravel-permission v6 |
 | File storage | spatie/laravel-medialibrary v11 |
-| Auth (API) | Bearer token (api_token column) |
+| Auth (API) | Bearer token (`api_token` column) |
 | Auth (Admin UI) | Session-based |
+| API docs | l5-swagger (OpenAPI 3 / Swagger UI) |
 
 ---
 
-## Requirements
+## Quick Start — Docker (recommended)
 
-- PHP 8.2+
-- Composer
-- Node.js + npm (only needed if you want to rebuild frontend assets)
-- SQLite extension enabled (default on most PHP installs)
-
----
-
-## Installation
+Requires Docker and Docker Compose.
 
 ```bash
-# 1. Clone the repository
 git clone <repo-url> mini-crm
 cd mini-crm
 
-# 2. Install PHP dependencies
+# Start the full stack (app + MySQL)
+docker compose up --build -d
+```
+
+The entrypoint script automatically:
+- copies `.env.docker` → `.env`
+- generates the app key
+- runs `migrate --force`
+- runs `db:seed --force`
+- creates the storage symlink
+
+App is available at **http://localhost:8000** once the container is healthy.
+
+To stop:
+```bash
+docker compose down
+```
+
+To wipe the database volume and start fresh:
+```bash
+docker compose down -v
+docker compose up --build -d
+```
+
+---
+
+## Quick Start — Local (SQLite)
+
+Requirements: PHP 8.2+, Composer, SQLite extension.
+
+```bash
+git clone <repo-url> mini-crm
+cd mini-crm
+
 composer install
 
-# 3. Copy environment file and generate app key
 cp .env.example .env
 php artisan key:generate
 
-# 4. Create the SQLite database file
 touch database/database.sqlite
 
-# 5. Run migrations and seed demo data
 php artisan migrate --seed
-
-# 6. Create the storage symlink (for media file URLs)
 php artisan storage:link
-
-# 7. Start the development server
 php artisan serve
 ```
 
-The application will be available at **http://localhost:8000**.
+App is available at **http://localhost:8000**.
+
+---
+
+## Environment Variables
+
+Key variables in `.env` / `.env.example`:
+
+| Variable | Default | Description |
+|---|---|---|
+| `APP_URL` | `http://localhost` | Used in media file URLs and iframe embed snippet |
+| `DB_CONNECTION` | `sqlite` | `sqlite`, `mysql`, or `pgsql` |
+| `DB_HOST` | — | MySQL host (Docker: `db`) |
+| `DB_DATABASE` | — | Database name |
+| `DB_USERNAME` | — | Database user |
+| `DB_PASSWORD` | — | Database password |
+| `CACHE_STORE` | `database` | Used by the rate limiter — switch to `redis` in production |
+| `FILESYSTEM_DISK` | `local` | Media storage disk (`local` or `s3`) |
+| `SESSION_DRIVER` | `database` | Admin panel session driver |
 
 ---
 
@@ -69,8 +107,8 @@ The application will be available at **http://localhost:8000**.
 
 ### API (Bearer token)
 
-Obtain a token via `POST /api/auth/login`. The seeded tokens are random on each
-`migrate:fresh --seed` run, so always log in first to get a fresh token.
+Obtain a token via `POST /api/auth/login`. Tokens are regenerated on each
+`migrate:fresh --seed`, so always log in first to get a fresh one.
 
 **Seeded users**
 
@@ -95,13 +133,14 @@ Plus 16 randomly generated customers and ~50 tickets spread across all statuses.
 
 ## Pages
 
-| URL | Description |
-|---|---|
-| `GET /widget` | Embeddable feedback form (iframe-safe) |
-| `GET /widget/embed` | Copy-paste `<iframe>` snippet + live preview |
-| `GET /admin/login` | Admin panel login |
-| `GET /admin/tickets` | Ticket list with filters |
-| `GET /admin/tickets/{id}` | Ticket detail, attachments, status change |
+| URL | Auth | Description |
+|---|---|---|
+| `GET /widget` | None | Embeddable feedback form (iframe-safe) |
+| `GET /widget/embed` | None | Copy-paste `<iframe>` snippet + live preview |
+| `GET /admin/login` | None | Admin panel login |
+| `GET /admin/tickets` | Admin session | Ticket list with filters |
+| `GET /admin/tickets/{id}` | Admin session | Ticket detail, attachments, status change |
+| `GET /api/documentation` | None | Swagger UI (OpenAPI 3) |
 
 ---
 
@@ -123,26 +162,76 @@ Paste this snippet anywhere in your website HTML:
 
 Replace `https://your-domain.com` with your actual `APP_URL`.
 
-The widget page sets `Content-Security-Policy: frame-ancestors *` so it can be
-embedded on any origin without browser security errors.
+The widget sets `Content-Security-Policy: frame-ancestors *` so it embeds on
+any origin without browser security errors.
 
-A live preview and the copy-paste snippet are also available at
-`GET /widget/embed`.
+A live preview and the ready-to-copy snippet are also at `GET /widget/embed`.
+
+### Submission rate limit
+
+The widget enforces **one submission per unique email or phone number per
+calendar day**. A second attempt returns `429 Too Many Requests` with a clear
+message. The limit resets at midnight (UTC).
+
+---
+
+## API Documentation (Swagger)
+
+Interactive Swagger UI is available at:
+
+```
+GET /api/documentation
+```
+
+To regenerate the spec after changing annotations:
+
+```bash
+php artisan l5-swagger:generate
+```
 
 ---
 
 ## REST API
 
-All API responses are JSON. Authenticated endpoints require:
+All responses are JSON. Authenticated endpoints require:
 
 ```
 Authorization: Bearer <token>
 ```
 
+### Full route table
+
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| POST | `/api/auth/register` | — | Register (assigned operator role) |
+| POST | `/api/auth/login` | — | Login, returns token |
+| POST | `/api/auth/logout` | Any | Invalidate token |
+| GET | `/api/auth/me` | Any | Current user + roles |
+| POST | `/api/widget/submit` | — | Public widget submission |
+| GET | `/api/tickets` | Any | List tickets (paginated) |
+| POST | `/api/tickets` | Any | Create ticket |
+| GET | `/api/tickets/statistics` | Any | Daily/weekly/monthly stats |
+| GET | `/api/tickets/{id}` | Any | Ticket detail + attachments |
+| POST | `/api/tickets/{id}` | Any | Update ticket (multipart) |
+| DELETE | `/api/tickets/{id}` | Admin | Delete ticket |
+| DELETE | `/api/tickets/{id}/attachments/{mediaId}` | Any | Delete attachment |
+| GET | `/api/customers` | Any | List customers |
+| POST | `/api/customers` | Any | Create customer |
+| GET | `/api/customers/{id}` | Any | Customer detail + tickets |
+| PUT | `/api/customers/{id}` | Any | Update customer |
+| DELETE | `/api/customers/{id}` | Any | Delete customer |
+| GET | `/api/users` | Admin | List users with roles |
+| GET | `/api/users/{id}` | Admin | Single user |
+| PUT | `/api/users/{id}` | Admin | Update name / email |
+| DELETE | `/api/users/{id}` | Admin | Delete user |
+| PUT | `/api/users/{id}/roles` | Admin | Sync roles |
+
+---
+
 ### Authentication
 
 #### Register
-```
+```http
 POST /api/auth/register
 Content-Type: application/json
 
@@ -155,7 +244,7 @@ Content-Type: application/json
 ```
 
 #### Login
-```
+```http
 POST /api/auth/login
 Content-Type: application/json
 
@@ -165,7 +254,7 @@ Content-Type: application/json
 }
 ```
 
-Response:
+Response `200`:
 ```json
 {
   "user": { "id": 1, "name": "Admin", "email": "admin@example.com", "roles": ["admin"] },
@@ -174,24 +263,24 @@ Response:
 ```
 
 #### Logout
-```
+```http
 POST /api/auth/logout
 Authorization: Bearer <token>
 ```
 
 #### Current user
-```
+```http
 GET /api/auth/me
 Authorization: Bearer <token>
 ```
 
 ---
 
-### Widget — public ticket submission
+### Widget — public submission
 
-No authentication required. Used by the `/widget` Blade page.
+No authentication required. Rate-limited to one per email/phone per day.
 
-```
+```http
 POST /api/widget/submit
 Content-Type: multipart/form-data
 
@@ -200,7 +289,7 @@ email    = "john@example.com"  (optional)
 phone    = "+12025550100"       (optional, E.164)
 subject  = "Login issue"       (required)
 content  = "I cannot log in…"  (required)
-files[]  = <file>              (optional, max 5 × 10 MB)
+files[]  = <file>              (optional, max 5 files × 10 MB each)
 ```
 
 Response `201`:
@@ -212,32 +301,35 @@ Response `201`:
 }
 ```
 
+Response `429` (rate limit hit):
+```json
+{
+  "message": "You have already submitted a request today. Please try again tomorrow."
+}
+```
+
 ---
 
 ### Tickets
 
-#### List tickets
-```
-GET /api/tickets
+#### List
+```http
+GET /api/tickets?status=new&page=1
 Authorization: Bearer <token>
-
-# Optional query params:
-?status=new          # new | in_progress | completed
-?page=2
 ```
 
 Admins see all tickets. Operators see only tickets assigned to them.
 
-#### Create ticket
-```
+#### Create
+```http
 POST /api/tickets
 Authorization: Bearer <token>
 Content-Type: multipart/form-data
 
-customer_id = 1               (required, existing customer id)
-subject     = "Billing issue" (required)
-content     = "Details…"      (required)
-assigned_to = 2               (optional, user id)
+customer_id = 1
+subject     = "Billing issue"
+content     = "I was charged twice."
+assigned_to = 2               (optional)
 files[]     = <file>          (optional)
 ```
 
@@ -247,7 +339,7 @@ Response `201`:
   "id": 5,
   "customer_id": 1,
   "subject": "Billing issue",
-  "content": "Details…",
+  "content": "I was charged twice.",
   "status": "new",
   "admin_response": null,
   "responded_at": null,
@@ -256,16 +348,16 @@ Response `201`:
 }
 ```
 
-#### Get ticket
-```
-GET /api/tickets/{id}
+#### Get (with attachments)
+```http
+GET /api/tickets/5
 Authorization: Bearer <token>
 ```
 
-Response includes an `attachments` array:
 ```json
 {
   "id": 5,
+  "status": "new",
   "attachments": [
     {
       "id": 1,
@@ -278,63 +370,42 @@ Response includes an `attachments` array:
 }
 ```
 
-#### Update ticket
-```
-POST /api/tickets/{id}
+#### Update
+```http
+POST /api/tickets/5
 Authorization: Bearer <token>
 Content-Type: multipart/form-data
 
-status         = "in_progress"     (optional)
-admin_response = "We are on it."   (optional)
-assigned_to    = 3                 (optional)
-files[]        = <file>            (optional, appends new files)
+status         = "in_progress"
+admin_response = "We are looking into this."
+assigned_to    = 3
+files[]        = <file>        (appends, does not replace)
 ```
 
-#### Delete ticket (admin only)
-```
-DELETE /api/tickets/{id}
+#### Delete (admin only)
+```http
+DELETE /api/tickets/5
 Authorization: Bearer <token>
 ```
 
 #### Delete attachment
-```
-DELETE /api/tickets/{id}/attachments/{mediaId}
+```http
+DELETE /api/tickets/5/attachments/1
 Authorization: Bearer <token>
 ```
 
-#### Ticket statistics (admin only)
-```
+#### Statistics
+```http
 GET /api/tickets/statistics
 Authorization: Bearer <token>
 ```
 
-Response:
 ```json
 {
-  "daily": {
-    "total": 3,
-    "new": 2,
-    "in_progress": 1,
-    "completed": 0
-  },
-  "weekly": {
-    "total": 14,
-    "new": 6,
-    "in_progress": 5,
-    "completed": 3
-  },
-  "monthly": {
-    "total": 48,
-    "new": 15,
-    "in_progress": 12,
-    "completed": 21
-  },
-  "all_time": {
-    "total": 48,
-    "new": 15,
-    "in_progress": 12,
-    "completed": 21
-  }
+  "daily":    { "total": 3,  "new": 2,  "in_progress": 1, "completed": 0  },
+  "weekly":   { "total": 14, "new": 6,  "in_progress": 5, "completed": 3  },
+  "monthly":  { "total": 48, "new": 15, "in_progress": 12,"completed": 21 },
+  "all_time": { "total": 48, "new": 15, "in_progress": 12,"completed": 21 }
 }
 ```
 
@@ -342,15 +413,15 @@ Response:
 
 ### Customers
 
-```
-GET    /api/customers              # paginated list with tickets_count
-POST   /api/customers              # create
-GET    /api/customers/{id}         # detail with tickets
-PUT    /api/customers/{id}         # update
-DELETE /api/customers/{id}         # delete
+```http
+GET    /api/customers           # paginated, includes tickets_count
+POST   /api/customers           # create
+GET    /api/customers/{id}      # detail with tickets
+PUT    /api/customers/{id}      # update
+DELETE /api/customers/{id}      # delete
 ```
 
-Create / update body:
+Body (create / update):
 ```json
 {
   "name":  "John Doe",
@@ -359,18 +430,18 @@ Create / update body:
 }
 ```
 
-Phone must be in **E.164 format** (`+` followed by 2–15 digits).
+`phone` must be **E.164** format (`+` followed by 2–15 digits).
 
 ---
 
 ### Users (admin only)
 
-```
-GET    /api/users              # list all users with roles
-GET    /api/users/{id}         # single user
-PUT    /api/users/{id}         # update name / email
-DELETE /api/users/{id}         # delete (cannot delete yourself)
-PUT    /api/users/{id}/roles   # sync roles
+```http
+GET    /api/users               # list with roles
+GET    /api/users/{id}
+PUT    /api/users/{id}          # update name / email only
+DELETE /api/users/{id}          # cannot delete yourself
+PUT    /api/users/{id}/roles    # sync roles
 ```
 
 Sync roles body:
@@ -384,25 +455,54 @@ Valid roles: `admin`, `operator`.
 
 ## Admin Panel
 
-Access at **http://localhost:8000/admin** (session-based, admin role required).
+Access at **http://localhost:8000/admin** — session-based, admin role required.
 
-### Ticket list — `/admin/tickets`
+### Ticket list `/admin/tickets`
 
-Filters available:
+Filter by:
 - Status (`new` / `in_progress` / `completed`)
 - Customer email
-- Customer phone
+- Customer phone (E.164)
 - Date range (`date_from` / `date_to`)
 
-### Ticket detail — `/admin/tickets/{id}`
+### Ticket detail `/admin/tickets/{id}`
 
-Shows:
-- Customer name, email, phone
-- Full message content
-- Admin response (if any) with responded_at timestamp
+- Customer name, email, phone (with `mailto:` / `tel:` links)
+- Full message and admin response
+- `responded_at` timestamp
 - Assigned operator
 - All attachments with individual **Download** links
-- Status change form (dropdown + save button)
+- Status change form (select + save, redirects with flash message)
+
+---
+
+## Running Tests
+
+```bash
+php artisan test
+```
+
+25 feature tests covering auth, ticket CRUD, operator visibility, statistics
+accuracy, widget submission, and rate limiting. All run in ~2 seconds using
+an in-memory SQLite database.
+
+To run a specific suite:
+```bash
+php artisan test --filter WidgetSubmitTest
+php artisan test --filter TicketApiTest
+php artisan test --filter AuthTest
+```
+
+---
+
+## Re-seeding
+
+```bash
+php artisan migrate:fresh --seed
+```
+
+Drops all tables, re-runs migrations, and seeds fresh demo data including the
+fixed admin/operator accounts above.
 
 ---
 
@@ -416,57 +516,60 @@ app/
         AdminAuthController.php     # session login / logout
         AdminTicketController.php   # list, show, status update
       AuthController.php            # API token auth
-      CustomerController.php
-      RoleController.php            # role sync
-      TicketController.php          # REST API + statistics
-      UserController.php
-      WidgetController.php          # public widget submit
-      WidgetPageController.php      # Blade widget page + embed page
+      CustomerController.php        # customer CRUD
+      RoleController.php            # role sync endpoint
+      SwaggerInfo.php               # OpenAPI global info + schemas
+      TicketController.php          # ticket CRUD + statistics
+      UserController.php            # user management
+      WidgetController.php          # public widget submit + rate limit
+      WidgetPageController.php      # /widget and /widget/embed pages
     Middleware/
       AdminAuthenticate.php         # session guard for admin panel
-      AllowIframeEmbedding.php      # removes X-Frame-Options
+      AllowIframeEmbedding.php      # sets frame-ancestors * header
       AuthenticateWithApiToken.php  # Bearer token guard
       CheckRole.php                 # spatie role check
   Models/
     Customer.php
-    Ticket.php                      # Eloquent scopes: daily/weekly/monthly
+    Ticket.php                      # Eloquent scopes: daily/weekly/monthly/ofStatus
     User.php                        # HasRoles (spatie)
 
 database/
-  factories/   UserFactory, CustomerFactory, TicketFactory
+  factories/
+    CustomerFactory.php
+    TicketFactory.php               # statusNew / inProgress / completed states
+    UserFactory.php
   migrations/
-  seeders/     RoleSeeder → UserSeeder → CustomerSeeder → TicketSeeder
+  seeders/
+    RoleSeeder.php                  # creates admin + operator roles
+    UserSeeder.php                  # fixed admin + operator + 3 random operators
+    CustomerSeeder.php              # 4 fixed + 16 random customers
+    TicketSeeder.php                # 3 fixed (one per status) + bulk random
 
 resources/views/
   admin/
     layout.blade.php
     login.blade.php
     pagination.blade.php
-    tickets/index.blade.php
-    tickets/show.blade.php
+    tickets/
+      index.blade.php
+      show.blade.php
   widget.blade.php
   widget-embed.blade.php
 
 routes/
   api.php
   web.php
+
+tests/
+  Feature/
+    AuthTest.php
+    TicketApiTest.php
+    WidgetSubmitTest.php
+
+docker/
+  entrypoint.sh
+  nginx.conf
+docker-compose.yml
+Dockerfile
+ARCHITECTURE.md
 ```
-
----
-
-## Running Tests
-
-```bash
-php artisan test
-```
-
----
-
-## Re-seeding
-
-```bash
-php artisan migrate:fresh --seed
-```
-
-This drops all tables, re-runs migrations, and seeds fresh demo data including
-the fixed admin/operator accounts listed above.
