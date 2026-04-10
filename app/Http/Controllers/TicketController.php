@@ -9,22 +9,55 @@ use Illuminate\Http\Response;
 
 class TicketController extends Controller
 {
+    // ── List ─────────────────────────────────────────────────────────────────
+
     public function index(Request $request): JsonResponse
     {
         $user  = $request->attributes->get('api_user');
         $query = Ticket::with(['customer', 'assignedTo'])->orderByDesc('created_at');
 
-        // Operators only see tickets assigned to them
         if (! $user->hasRole('admin')) {
             $query->where('assigned_to', $user->id);
         }
 
         if ($request->filled('status')) {
-            $query->where('status', $request->status);
+            $query->ofStatus($request->status);
         }
 
         return response()->json($query->paginate(20));
     }
+
+    // ── Statistics (admin only) ───────────────────────────────────────────────
+
+    public function statistics(): JsonResponse
+    {
+        $statuses = ['new', 'in_progress', 'completed'];
+
+        $breakdown = function (string $scope) use ($statuses): array {
+            $base = Ticket::{$scope}();
+            $row  = ['total' => (clone $base)->count()];
+
+            foreach ($statuses as $s) {
+                $row[$s] = (clone $base)->ofStatus($s)->count();
+            }
+
+            return $row;
+        };
+
+        return response()->json([
+            'daily'   => $breakdown('daily'),
+            'weekly'  => $breakdown('weekly'),
+            'monthly' => $breakdown('monthly'),
+            'all_time' => [
+                'total'       => Ticket::count(),
+                'new'         => Ticket::ofStatus('new')->count(),
+                'in_progress' => Ticket::ofStatus('in_progress')->count(),
+                'completed'   => Ticket::ofStatus('completed')->count(),
+            ],
+        ]);
+    }
+
+    // ── Show ─────────────────────────────────────────────────────────────────
 
     public function show(Request $request, Ticket $ticket): JsonResponse
     {
@@ -45,6 +78,8 @@ class TicketController extends Controller
 
         return response()->json($ticket);
     }
+
+    // ── Create ───────────────────────────────────────────────────────────────
 
     public function store(Request $request): JsonResponse
     {
@@ -69,6 +104,8 @@ class TicketController extends Controller
 
         return response()->json($ticket->load('customer'), Response::HTTP_CREATED);
     }
+
+    // ── Update ───────────────────────────────────────────────────────────────
 
     public function update(Request $request, Ticket $ticket): JsonResponse
     {
@@ -98,6 +135,8 @@ class TicketController extends Controller
         return response()->json($ticket->fresh(['customer', 'assignedTo']));
     }
 
+    // ── Delete ───────────────────────────────────────────────────────────────
+
     public function destroy(Request $request, Ticket $ticket): JsonResponse
     {
         if (! $request->attributes->get('api_user')->hasRole('admin')) {
@@ -109,12 +148,14 @@ class TicketController extends Controller
         return response()->json(null, Response::HTTP_NO_CONTENT);
     }
 
+    // ── Delete attachment ─────────────────────────────────────────────────────
+
     public function deleteAttachment(Request $request, Ticket $ticket, int $mediaId): JsonResponse
     {
         $user = $request->attributes->get('api_user');
 
         if (! $user->hasRole('admin') && $ticket->assigned_to !== $user->id) {
-            return response()->json(['message' => 'Forbidden.'], Response::HTTP_FORBIDDEN);
+            return response()->json(['message' => 'Attachment not found.'], Response::HTTP_NOT_FOUND);
         }
 
         $media = $ticket->getMedia('attachments')->firstWhere('id', $mediaId);
@@ -127,6 +168,8 @@ class TicketController extends Controller
 
         return response()->json(null, Response::HTTP_NO_CONTENT);
     }
+
+    // ── Private ───────────────────────────────────────────────────────────────
 
     private function attachFiles(Request $request, Ticket $ticket): void
     {

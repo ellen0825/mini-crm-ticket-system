@@ -31,6 +31,7 @@ Route::middleware('auth.api')->group(function () {
     Route::get('/auth/me',      [AuthController::class, 'me']);
 
     // Tickets
+    Route::get('/tickets/statistics',                           [TicketController::class, 'statistics']);
     Route::get('/tickets',                                      [TicketController::class, 'index']);
     Route::post('/tickets',                                     [TicketController::class, 'store']);
     Route::get('/tickets/{ticket}',                             [TicketController::class, 'show']);
