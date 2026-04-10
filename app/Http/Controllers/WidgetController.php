@@ -12,8 +12,34 @@ use Illuminate\Support\Facades\RateLimiter;
 class WidgetController extends Controller
 {
     /**
-     * Public REST endpoint consumed by the /widget Blade page via AJAX.
-     * Limited to one submission per unique email/phone per calendar day.
+     * @OA\Post(
+     *     path="/widget/submit",
+     *     tags={"Widget"},
+     *     summary="Submit a support request from the public widget (no auth required)",
+     *     description="Limited to one submission per unique email or phone number per calendar day.",
+     *     @OA\RequestBody(required=true,
+     *         @OA\MediaType(mediaType="multipart/form-data",
+     *             @OA\Schema(
+     *                 required={"name","subject","content"},
+     *                 @OA\Property(property="name",    type="string",  example="John Doe"),
+     *                 @OA\Property(property="email",   type="string",  example="john@example.com"),
+     *                 @OA\Property(property="phone",   type="string",  example="+12025550100"),
+     *                 @OA\Property(property="subject", type="string",  example="Login issue"),
+     *                 @OA\Property(property="content", type="string",  example="I cannot log in."),
+     *                 @OA\Property(property="files[]", type="array",   @OA\Items(type="string", format="binary"))
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(response=201, description="Ticket created",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message",   type="string"),
+     *             @OA\Property(property="ticket_id", type="integer"),
+     *             @OA\Property(property="reference", type="string", example="TKT-00042")
+     *         )
+     *     ),
+     *     @OA\Response(response=422, description="Validation error"),
+     *     @OA\Response(response=429, description="Rate limit exceeded — one submission per day")
+     * )
      */
     public function submit(Request $request): JsonResponse
     {
@@ -57,12 +83,6 @@ class WidgetController extends Controller
         ], Response::HTTP_CREATED);
     }
 
-    // ── Rate limiting ─────────────────────────────────────────────────────────
-
-    /**
-     * Build a deterministic daily rate-limit key from the contact identifiers.
-     * At least one of email or phone must be present for a key to be generated.
-     */
     private function rateLimitKey(array $data): ?string
     {
         $identifier = null;
@@ -77,7 +97,6 @@ class WidgetController extends Controller
             return null;
         }
 
-        // Rotate key daily so the limit resets at midnight
         return 'widget_submit:' . $identifier . ':' . now()->toDateString();
     }
 
@@ -93,13 +112,9 @@ class WidgetController extends Controller
         $key = $this->rateLimitKey($data);
 
         if ($key !== null) {
-            // Decay until end of current calendar day
-            $secondsUntilMidnight = now()->secondsUntilEndOfDay();
-            RateLimiter::hit($key, $secondsUntilMidnight);
+            RateLimiter::hit($key, now()->secondsUntilEndOfDay());
         }
     }
-
-    // ── Customer resolution ───────────────────────────────────────────────────
 
     private function resolveCustomer(array $data): Customer
     {

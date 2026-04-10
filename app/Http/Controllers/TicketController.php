@@ -6,11 +6,26 @@ use App\Models\Ticket;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use OpenApi\Attributes as OA;
 
 class TicketController extends Controller
 {
-    // ── List ─────────────────────────────────────────────────────────────────
-
+    #[OA\Get(
+        path: '/tickets',
+        tags: ['Tickets'],
+        summary: 'List tickets (paginated). Admins see all; operators see only assigned.',
+        security: [['bearerAuth' => []]],
+        parameters: [
+            new OA\Parameter(name: 'status', in: 'query', required: false,
+                schema: new OA\Schema(type: 'string', enum: ['new', 'in_progress', 'completed'])
+            ),
+            new OA\Parameter(name: 'page', in: 'query', required: false, schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Paginated list'),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+        ]
+    )]
     public function index(Request $request): JsonResponse
     {
         $user  = $request->attributes->get('api_user');
@@ -27,8 +42,16 @@ class TicketController extends Controller
         return response()->json($query->paginate(20));
     }
 
-    // ── Statistics (admin only) ───────────────────────────────────────────────
-
+    #[OA\Get(
+        path: '/tickets/statistics',
+        tags: ['Tickets'],
+        summary: 'Ticket statistics — daily, weekly, monthly, all-time',
+        security: [['bearerAuth' => []]],
+        responses: [
+            new OA\Response(response: 200, description: 'Statistics breakdown'),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+        ]
+    )]
     public function statistics(): JsonResponse
     {
         $statuses = ['new', 'in_progress', 'completed'];
@@ -45,9 +68,9 @@ class TicketController extends Controller
         };
 
         return response()->json([
-            'daily'   => $breakdown('daily'),
-            'weekly'  => $breakdown('weekly'),
-            'monthly' => $breakdown('monthly'),
+            'daily'    => $breakdown('daily'),
+            'weekly'   => $breakdown('weekly'),
+            'monthly'  => $breakdown('monthly'),
             'all_time' => [
                 'total'       => Ticket::count(),
                 'new'         => Ticket::ofStatus('new')->count(),
@@ -57,8 +80,18 @@ class TicketController extends Controller
         ]);
     }
 
-    // ── Show ─────────────────────────────────────────────────────────────────
-
+    #[OA\Get(
+        path: '/tickets/{id}',
+        tags: ['Tickets'],
+        summary: 'Get a single ticket with attachments',
+        security: [['bearerAuth' => []]],
+        parameters: [new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))],
+        responses: [
+            new OA\Response(response: 200, description: 'Ticket detail'),
+            new OA\Response(response: 403, description: 'Forbidden'),
+            new OA\Response(response: 404, description: 'Not found'),
+        ]
+    )]
     public function show(Request $request, Ticket $ticket): JsonResponse
     {
         $user = $request->attributes->get('api_user');
@@ -79,8 +112,28 @@ class TicketController extends Controller
         return response()->json($ticket);
     }
 
-    // ── Create ───────────────────────────────────────────────────────────────
-
+    #[OA\Post(
+        path: '/tickets',
+        tags: ['Tickets'],
+        summary: 'Create a new ticket',
+        security: [['bearerAuth' => []]],
+        requestBody: new OA\RequestBody(required: true, content: new OA\MediaType(
+            mediaType: 'multipart/form-data',
+            schema: new OA\Schema(
+                required: ['customer_id', 'subject', 'content'],
+                properties: [
+                    new OA\Property(property: 'customer_id', type: 'integer'),
+                    new OA\Property(property: 'subject',     type: 'string'),
+                    new OA\Property(property: 'content',     type: 'string'),
+                    new OA\Property(property: 'assigned_to', type: 'integer'),
+                ]
+            )
+        )),
+        responses: [
+            new OA\Response(response: 201, description: 'Ticket created'),
+            new OA\Response(response: 422, description: 'Validation error'),
+        ]
+    )]
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -105,8 +158,17 @@ class TicketController extends Controller
         return response()->json($ticket->load('customer'), Response::HTTP_CREATED);
     }
 
-    // ── Update ───────────────────────────────────────────────────────────────
-
+    #[OA\Post(
+        path: '/tickets/{id}',
+        tags: ['Tickets'],
+        summary: 'Update a ticket (POST used to support multipart file uploads)',
+        security: [['bearerAuth' => []]],
+        parameters: [new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))],
+        responses: [
+            new OA\Response(response: 200, description: 'Updated ticket'),
+            new OA\Response(response: 403, description: 'Forbidden'),
+        ]
+    )]
     public function update(Request $request, Ticket $ticket): JsonResponse
     {
         $user = $request->attributes->get('api_user');
@@ -135,8 +197,17 @@ class TicketController extends Controller
         return response()->json($ticket->fresh(['customer', 'assignedTo']));
     }
 
-    // ── Delete ───────────────────────────────────────────────────────────────
-
+    #[OA\Delete(
+        path: '/tickets/{id}',
+        tags: ['Tickets'],
+        summary: 'Delete a ticket (admin only)',
+        security: [['bearerAuth' => []]],
+        parameters: [new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))],
+        responses: [
+            new OA\Response(response: 204, description: 'Deleted'),
+            new OA\Response(response: 403, description: 'Forbidden'),
+        ]
+    )]
     public function destroy(Request $request, Ticket $ticket): JsonResponse
     {
         if (! $request->attributes->get('api_user')->hasRole('admin')) {
@@ -148,8 +219,20 @@ class TicketController extends Controller
         return response()->json(null, Response::HTTP_NO_CONTENT);
     }
 
-    // ── Delete attachment ─────────────────────────────────────────────────────
-
+    #[OA\Delete(
+        path: '/tickets/{id}/attachments/{mediaId}',
+        tags: ['Tickets'],
+        summary: 'Delete a single attachment',
+        security: [['bearerAuth' => []]],
+        parameters: [
+            new OA\Parameter(name: 'id',      in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'mediaId', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(response: 204, description: 'Deleted'),
+            new OA\Response(response: 404, description: 'Not found'),
+        ]
+    )]
     public function deleteAttachment(Request $request, Ticket $ticket, int $mediaId): JsonResponse
     {
         $user = $request->attributes->get('api_user');
@@ -168,8 +251,6 @@ class TicketController extends Controller
 
         return response()->json(null, Response::HTTP_NO_CONTENT);
     }
-
-    // ── Private ───────────────────────────────────────────────────────────────
 
     private function attachFiles(Request $request, Ticket $ticket): void
     {
