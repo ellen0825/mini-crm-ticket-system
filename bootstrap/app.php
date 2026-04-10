@@ -13,8 +13,9 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
-            'auth.api' => \App\Http\Middleware\AuthenticateWithApiToken::class,
-            'role'     => \App\Http\Middleware\CheckRole::class,
+            'auth.api'      => \App\Http\Middleware\AuthenticateWithApiToken::class,
+            'role'          => \App\Http\Middleware\CheckRole::class,
+            'allow.iframe'  => \App\Http\Middleware\AllowIframeEmbedding::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

@@ -7,4 +7,11 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/widget', [WidgetPageController::class, 'show'])->name('widget');
+// The widget itself — allow embedding in any <iframe>
+Route::get('/widget', [WidgetPageController::class, 'show'])
+    ->middleware('allow.iframe')
+    ->name('widget');
+
+// Embed snippet page — shows the copy-paste <iframe> code
+Route::get('/widget/embed', [WidgetPageController::class, 'embed'])
+    ->name('widget.embed');
