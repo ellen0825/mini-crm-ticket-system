@@ -4,17 +4,18 @@ namespace App\Http\Controllers;
 
 use App\Models\Customer;
 use App\Models\Ticket;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
 class WidgetController extends Controller
 {
     /**
-     * Public endpoint — no authentication required.
-     * Accepts a ticket submission from an external website widget.
-     * Finds or creates the customer by email/phone, then creates the ticket.
+     * Public REST endpoint consumed by the /widget Blade page via AJAX.
+     * No authentication required — resolves or creates the customer record,
+     * then opens a new ticket and attaches any uploaded files.
      */
-    public function submit(Request $request)
+    public function submit(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'name'    => ['required', 'string', 'max:255'],
@@ -22,11 +23,10 @@ class WidgetController extends Controller
             'email'   => ['nullable', 'email', 'max:255'],
             'subject' => ['required', 'string', 'max:255'],
             'content' => ['required', 'string'],
-            'files'   => ['nullable', 'array'],
-            'files.*' => ['file', 'max:10240'],
+            'files'   => ['nullable', 'array', 'max:5'],
+            'files.*' => ['file', 'max:10240', 'mimes:jpg,jpeg,png,gif,pdf,doc,docx,xls,xlsx,txt,zip'],
         ]);
 
-        // Resolve or create the customer record
         $customer = $this->resolveCustomer($validated);
 
         $ticket = Ticket::create([
@@ -45,12 +45,12 @@ class WidgetController extends Controller
         return response()->json([
             'message'   => 'Your request has been submitted. We will get back to you shortly.',
             'ticket_id' => $ticket->id,
+            'reference' => 'TKT-' . str_pad($ticket->id, 5, '0', STR_PAD_LEFT),
         ], Response::HTTP_CREATED);
     }
 
     private function resolveCustomer(array $data): Customer
     {
-        // Try to match by email first, then phone
         if (! empty($data['email'])) {
             $customer = Customer::where('email', $data['email'])->first();
             if ($customer) {

@@ -7,7 +7,6 @@
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-        /* ── Base ── */
         html, body {
             height: 100%;
             font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -16,10 +15,7 @@
             background: #ffffff;
         }
 
-        body {
-            padding: 1.5rem 1.75rem 2rem;
-            overflow-x: hidden;
-        }
+        body { padding: 1.5rem 1.75rem 2rem; overflow-x: hidden; }
 
         /* ── Header ── */
         .w-header {
@@ -32,74 +28,47 @@
         }
 
         .w-header__icon {
-            width: 38px;
-            height: 38px;
+            width: 38px; height: 38px;
             border-radius: 10px;
             background: linear-gradient(135deg, #6366f1, #8b5cf6);
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            display: flex; align-items: center; justify-content: center;
             flex-shrink: 0;
         }
 
-        .w-header__icon svg { display: block; }
+        .w-header__title { font-size: 1.05rem; font-weight: 700; line-height: 1.2; }
+        .w-header__sub   { font-size: .78rem; color: #6b7280; margin-top: .15rem; }
 
-        .w-header__title {
-            font-size: 1.05rem;
-            font-weight: 700;
-            color: #1e1e2e;
-            line-height: 1.2;
-        }
-
-        .w-header__sub {
-            font-size: .78rem;
-            color: #6b7280;
-            margin-top: .15rem;
-        }
-
-        /* ── Alerts ── */
-        .alert {
+        /* ── Error banner ── */
+        .alert-error {
+            display: none;
+            align-items: flex-start;
+            gap: .5rem;
+            background: #fef2f2;
+            border: 1px solid #fca5a5;
+            color: #991b1b;
             border-radius: 8px;
             padding: .75rem 1rem;
             font-size: .84rem;
             line-height: 1.45;
             margin-bottom: 1.1rem;
-            display: none;
-            gap: .5rem;
-            align-items: flex-start;
         }
 
-        .alert--success {
-            background: #f0fdf4;
-            border: 1px solid #86efac;
-            color: #166534;
-        }
+        .alert-error__icon { flex-shrink: 0; margin-top: 1px; }
 
-        .alert--error {
-            background: #fef2f2;
-            border: 1px solid #fca5a5;
-            color: #991b1b;
-        }
-
-        /* ── Form ── */
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: .75rem;
-        }
-
+        /* ── Form layout ── */
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
         .form-group { margin-bottom: .9rem; }
 
         label {
             display: block;
-            font-size: .78rem;
-            font-weight: 600;
+            font-size: .78rem; font-weight: 600;
             color: #374151;
             margin-bottom: .3rem;
             letter-spacing: .01em;
         }
 
         label .req { color: #ef4444; margin-left: 1px; }
+        label .hint { font-weight: 400; color: #b0b7c3; }
 
         input[type="text"],
         input[type="email"],
@@ -130,22 +99,20 @@
             background: #fff5f5;
         }
 
-        textarea {
-            resize: vertical;
-            min-height: 90px;
-            line-height: 1.5;
+        textarea { resize: vertical; min-height: 90px; line-height: 1.5; }
+
+        .field-error {
+            font-size: .75rem; color: #ef4444;
+            margin-top: .25rem; display: none;
         }
 
         /* ── File picker ── */
         .file-trigger {
-            display: flex;
-            align-items: center;
-            gap: .5rem;
+            display: flex; align-items: center; gap: .5rem;
             padding: .55rem .8rem;
             border: 1.5px dashed #d1d5db;
             border-radius: 7px;
-            font-size: .84rem;
-            color: #6b7280;
+            font-size: .84rem; color: #6b7280;
             background: #fafafa;
             cursor: pointer;
             transition: border-color .15s, color .15s;
@@ -153,132 +120,91 @@
         }
 
         .file-trigger:hover { border-color: #6366f1; color: #6366f1; }
+        input[type="file"]  { display: none; }
 
-        input[type="file"] { display: none; }
-
-        .file-chips {
-            display: flex;
-            flex-wrap: wrap;
-            gap: .3rem;
-            margin-top: .45rem;
-        }
+        .file-chips { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .45rem; }
 
         .chip {
-            display: inline-flex;
-            align-items: center;
-            gap: .3rem;
-            background: #f3f4f6;
-            border: 1px solid #e5e7eb;
-            border-radius: 5px;
-            padding: .15rem .5rem;
-            font-size: .76rem;
-            color: #374151;
-            max-width: 180px;
+            display: inline-flex; align-items: center; gap: .3rem;
+            background: #f3f4f6; border: 1px solid #e5e7eb;
+            border-radius: 5px; padding: .15rem .5rem;
+            font-size: .76rem; color: #374151; max-width: 180px;
         }
 
-        .chip span {
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
+        .chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
         .chip__remove {
-            background: none;
-            border: none;
-            cursor: pointer;
-            color: #9ca3af;
-            font-size: .85rem;
-            line-height: 1;
-            padding: 0;
-            flex-shrink: 0;
+            background: none; border: none; cursor: pointer;
+            color: #9ca3af; font-size: .85rem; line-height: 1; padding: 0; flex-shrink: 0;
         }
 
         .chip__remove:hover { color: #ef4444; }
 
-        /* ── Field error ── */
-        .field-error {
-            font-size: .75rem;
-            color: #ef4444;
-            margin-top: .25rem;
-            display: none;
-        }
-
         /* ── Submit button ── */
         .btn-submit {
-            width: 100%;
-            padding: .7rem 1rem;
+            width: 100%; padding: .7rem 1rem;
             background: linear-gradient(135deg, #6366f1, #8b5cf6);
-            color: #fff;
-            border: none;
-            border-radius: 8px;
-            font-size: .95rem;
-            font-weight: 600;
+            color: #fff; border: none; border-radius: 8px;
+            font-size: .95rem; font-weight: 600;
             cursor: pointer;
             transition: opacity .15s, transform .1s;
             margin-top: .25rem;
-            letter-spacing: .01em;
+            display: flex; align-items: center; justify-content: center; gap: .5rem;
         }
 
         .btn-submit:hover   { opacity: .92; }
         .btn-submit:active  { transform: scale(.99); }
         .btn-submit:disabled { opacity: .55; cursor: not-allowed; }
 
+        /* spinner inside button */
+        .spinner {
+            display: none;
+            width: 16px; height: 16px;
+            border: 2px solid rgba(255,255,255,.4);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin .7s linear infinite;
+            flex-shrink: 0;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
         /* ── Success state ── */
         .success-state {
             display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            padding: 2.5rem 1rem;
-            gap: 1rem;
+            flex-direction: column; align-items: center;
+            text-align: center; padding: 2rem 1rem; gap: .9rem;
         }
 
         .success-state__icon {
-            width: 56px;
-            height: 56px;
-            border-radius: 50%;
-            background: #f0fdf4;
-            border: 2px solid #86efac;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            width: 56px; height: 56px; border-radius: 50%;
+            background: #f0fdf4; border: 2px solid #86efac;
+            display: flex; align-items: center; justify-content: center;
         }
 
-        .success-state__title {
-            font-size: 1.05rem;
-            font-weight: 700;
-            color: #166534;
-        }
+        .success-state__title { font-size: 1.05rem; font-weight: 700; color: #166534; }
 
-        .success-state__body {
-            font-size: .875rem;
-            color: #6b7280;
-            line-height: 1.55;
+        .success-state__body { font-size: .875rem; color: #6b7280; line-height: 1.55; }
+
+        .success-state__ref {
+            font-size: .8rem; color: #9ca3af;
+            background: #f9fafb; border: 1px solid #e5e7eb;
+            border-radius: 6px; padding: .3rem .75rem;
+            font-family: 'SFMono-Regular', Consolas, monospace;
         }
 
         .btn-new {
-            margin-top: .5rem;
             padding: .55rem 1.25rem;
-            background: none;
-            border: 1.5px solid #6366f1;
-            border-radius: 7px;
-            color: #6366f1;
-            font-size: .875rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background .15s, color .15s;
+            background: none; border: 1.5px solid #6366f1;
+            border-radius: 7px; color: #6366f1;
+            font-size: .875rem; font-weight: 600;
+            cursor: pointer; transition: background .15s, color .15s;
         }
 
         .btn-new:hover { background: #6366f1; color: #fff; }
 
         /* ── Footer ── */
-        .w-footer {
-            margin-top: 1.25rem;
-            text-align: center;
-            font-size: .72rem;
-            color: #c4c4cf;
-        }
+        .w-footer { margin-top: 1.25rem; text-align: center; font-size: .72rem; color: #c4c4cf; }
 
         @media (max-width: 400px) {
             body { padding: 1.1rem 1rem 1.5rem; }
@@ -288,10 +214,10 @@
 </head>
 <body>
 
-    {{-- ── Header ── --}}
     <div class="w-header">
         <div class="w-header__icon" aria-hidden="true">
-            <svg width="20" height="20" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+            <svg width="20" height="20" fill="none" stroke="#fff" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
                 <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
             </svg>
         </div>
@@ -301,73 +227,88 @@
         </div>
     </div>
 
-    {{-- ── Error banner ── --}}
-    <div class="alert alert--error" id="alert-error" role="alert"></div>
+    {{-- Error banner --}}
+    <div class="alert-error" id="alert-error" role="alert" aria-live="assertive">
+        <svg class="alert-error__icon" width="16" height="16" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <span id="alert-error-text"></span>
+    </div>
 
-    {{-- ── Form ── --}}
+    {{-- Form --}}
     <form id="widget-form" novalidate>
 
         <div class="form-row">
             <div class="form-group">
-                <label for="name">Full name <span class="req">*</span></label>
-                <input type="text" id="name" name="name" placeholder="Jane Doe" autocomplete="name">
+                <label for="f-name">Full name <span class="req">*</span></label>
+                <input type="text" id="f-name" name="name" placeholder="Jane Doe" autocomplete="name">
                 <span class="field-error" id="err-name"></span>
             </div>
             <div class="form-group">
-                <label for="email">Email</label>
-                <input type="email" id="email" name="email" placeholder="you@example.com" autocomplete="email">
+                <label for="f-email">Email</label>
+                <input type="email" id="f-email" name="email" placeholder="you@example.com" autocomplete="email">
                 <span class="field-error" id="err-email"></span>
             </div>
         </div>
 
         <div class="form-group">
-            <label for="phone">Phone <span style="font-weight:400;color:#b0b7c3">(E.164 · e.g. +12025550100)</span></label>
-            <input type="tel" id="phone" name="phone" placeholder="+12025550100" autocomplete="tel">
+            <label for="f-phone">
+                Phone <span class="hint">(E.164 · e.g. +12025550100)</span>
+            </label>
+            <input type="tel" id="f-phone" name="phone" placeholder="+12025550100" autocomplete="tel">
             <span class="field-error" id="err-phone"></span>
         </div>
 
         <div class="form-group">
-            <label for="subject">Subject <span class="req">*</span></label>
-            <input type="text" id="subject" name="subject" placeholder="How can we help?">
+            <label for="f-subject">Subject <span class="req">*</span></label>
+            <input type="text" id="f-subject" name="subject" placeholder="How can we help?">
             <span class="field-error" id="err-subject"></span>
         </div>
 
         <div class="form-group">
-            <label for="content">Message <span class="req">*</span></label>
-            <textarea id="content" name="content" placeholder="Describe your issue or question…"></textarea>
+            <label for="f-content">Message <span class="req">*</span></label>
+            <textarea id="f-content" name="content" placeholder="Describe your issue or question…"></textarea>
             <span class="field-error" id="err-content"></span>
         </div>
 
         <div class="form-group">
-            <label>Attachments <span style="font-weight:400;color:#b0b7c3">(max 10 MB each)</span></label>
-            <label class="file-trigger" for="files" id="file-trigger">
-                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true">
+            <label>
+                Attachments <span class="hint">(max 5 files · 10 MB each)</span>
+            </label>
+            <label class="file-trigger" for="f-files">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"
+                     stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true">
                     <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66L9.41 17.41a2 2 0 01-2.83-2.83l8.49-8.48"/>
                 </svg>
-                <span id="file-trigger-text">Choose files…</span>
+                Choose files…
             </label>
-            <input type="file" id="files" name="files[]" multiple aria-label="Attach files">
+            <input type="file" id="f-files" name="files[]" multiple aria-label="Attach files">
             <div class="file-chips" id="file-chips"></div>
+            <span class="field-error" id="err-files"></span>
         </div>
 
         <button type="submit" class="btn-submit" id="submit-btn">
-            Send Message
+            <span class="spinner" id="spinner" aria-hidden="true"></span>
+            <span id="submit-label">Send Message</span>
         </button>
 
     </form>
 
-    {{-- ── Success state (replaces form on success) ── --}}
+    {{-- Success state --}}
     <div class="success-state" id="success-state" aria-live="polite">
         <div class="success-state__icon" aria-hidden="true">
-            <svg width="26" height="26" fill="none" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+            <svg width="26" height="26" fill="none" stroke="#22c55e" stroke-width="2.5"
+                 stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
                 <polyline points="20 6 9 17 4 12"/>
             </svg>
         </div>
         <div class="success-state__title">Message sent!</div>
-        <p class="success-state__body" id="success-msg">
-            Your request has been submitted. We will get back to you shortly.
+        <p class="success-state__body">
+            Your request has been submitted.<br>We will get back to you shortly.
         </p>
-        <button class="btn-new" id="btn-new">Send another message</button>
+        <span class="success-state__ref" id="ticket-ref"></span>
+        <button class="btn-new" id="btn-new" type="button">Send another message</button>
     </div>
 
     <div class="w-footer">Powered by {{ config('app.name') }}</div>
@@ -376,16 +317,21 @@
 (function () {
     'use strict';
 
+    // ── DOM refs ─────────────────────────────────────────────────────────────
     var form        = document.getElementById('widget-form');
     var submitBtn   = document.getElementById('submit-btn');
-    var fileInput   = document.getElementById('files');
+    var submitLabel = document.getElementById('submit-label');
+    var spinner     = document.getElementById('spinner');
+    var fileInput   = document.getElementById('f-files');
     var fileChips   = document.getElementById('file-chips');
-    var alertErr    = document.getElementById('alert-error');
+    var alertBox    = document.getElementById('alert-error');
+    var alertText   = document.getElementById('alert-error-text');
     var successEl   = document.getElementById('success-state');
-    var successMsg  = document.getElementById('success-msg');
+    var ticketRef   = document.getElementById('ticket-ref');
     var btnNew      = document.getElementById('btn-new');
 
     var selectedFiles = [];
+    var REQUEST_TIMEOUT_MS = 15000;
 
     // ── File picker ──────────────────────────────────────────────────────────
     fileInput.addEventListener('change', function () {
@@ -418,15 +364,19 @@
     // ── Helpers ──────────────────────────────────────────────────────────────
     function esc(s) {
         return String(s).replace(/[&<>"']/g, function (c) {
-            return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
         });
     }
 
-    function fieldErr(id, msg) {
-        var el  = document.getElementById(id);
-        var err = document.getElementById('err-' + id);
-        if (el)  { el.classList.add('is-invalid'); }
-        if (err) { err.textContent = msg; err.style.display = 'block'; }
+    function val(id) {
+        return document.getElementById(id).value.trim();
+    }
+
+    function setFieldError(name, msg) {
+        var input = form.querySelector('[name="' + name + '"]');
+        var err   = document.getElementById('err-' + name);
+        if (input) { input.classList.add('is-invalid'); }
+        if (err)   { err.textContent = msg; err.style.display = 'block'; }
     }
 
     function clearErrors() {
@@ -436,21 +386,30 @@
         form.querySelectorAll('.field-error').forEach(function (el) {
             el.textContent = ''; el.style.display = 'none';
         });
-        alertErr.style.display = 'none';
+        alertBox.style.display = 'none';
+        alertText.textContent  = '';
     }
 
-    function showError(msg) {
-        alertErr.textContent   = msg;
-        alertErr.style.display = 'flex';
+    function showBannerError(msg) {
+        alertText.textContent  = msg;
+        alertBox.style.display = 'flex';
+        alertBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
-    function showSuccess(msg) {
-        form.style.display         = 'none';
-        successMsg.textContent     = msg;
-        successEl.style.display    = 'flex';
+    function setLoading(on) {
+        submitBtn.disabled      = on;
+        spinner.style.display   = on ? 'block' : 'none';
+        submitLabel.textContent = on ? 'Sending…' : 'Send Message';
     }
 
-    function resetForm() {
+    function showSuccess(reference) {
+        form.style.display      = 'none';
+        ticketRef.textContent   = reference;
+        successEl.style.display = 'flex';
+        successEl.focus();
+    }
+
+    function resetAll() {
         form.reset();
         selectedFiles = [];
         renderChips();
@@ -464,49 +423,84 @@
         e.preventDefault();
         clearErrors();
 
+        // Client-side required check before hitting the network
+        var name    = val('f-name');
+        var subject = val('f-subject');
+        var content = val('f-content');
+        var hasErr  = false;
+
+        if (! name)    { setFieldError('name',    'Full name is required.'); hasErr = true; }
+        if (! subject) { setFieldError('subject', 'Subject is required.');   hasErr = true; }
+        if (! content) { setFieldError('content', 'Message is required.');   hasErr = true; }
+
+        if (hasErr) {
+            showBannerError('Please fill in all required fields.');
+            return;
+        }
+
         var data = new FormData();
-        data.append('name',    document.getElementById('name').value.trim());
-        data.append('email',   document.getElementById('email').value.trim());
-        data.append('phone',   document.getElementById('phone').value.trim());
-        data.append('subject', document.getElementById('subject').value.trim());
-        data.append('content', document.getElementById('content').value.trim());
+        data.append('name',    name);
+        data.append('email',   val('f-email'));
+        data.append('phone',   val('f-phone'));
+        data.append('subject', subject);
+        data.append('content', content);
         selectedFiles.forEach(function (f) { data.append('files[]', f); });
 
-        submitBtn.disabled    = true;
-        submitBtn.textContent = 'Sending…';
+        setLoading(true);
+
+        // Abort controller for request timeout
+        var controller = new AbortController();
+        var timer = setTimeout(function () { controller.abort(); }, REQUEST_TIMEOUT_MS);
 
         fetch('/api/widget/submit', {
             method:  'POST',
             headers: { 'Accept': 'application/json' },
             body:    data,
+            signal:  controller.signal,
         })
         .then(function (res) {
+            clearTimeout(timer);
             return res.json().then(function (body) {
                 return { status: res.status, body: body };
             });
         })
         .then(function (r) {
             if (r.status === 201) {
-                showSuccess(r.body.message || 'Your message has been sent.');
+                // ── Success ──────────────────────────────────────────────────
+                showSuccess(r.body.reference || ('#' + r.body.ticket_id));
+
             } else if (r.status === 422 && r.body.errors) {
-                Object.entries(r.body.errors).forEach(function (entry) {
-                    fieldErr(entry[0].replace(/\.\d+$/, ''), entry[1][0]);
+                // ── Validation errors from the API ────────────────────────────
+                Object.keys(r.body.errors).forEach(function (field) {
+                    // Strip array notation: "files.0" → "files"
+                    var name = field.replace(/\.\d+$/, '');
+                    setFieldError(name, r.body.errors[field][0]);
                 });
-                showError('Please fix the errors above and try again.');
+                showBannerError('Please fix the errors highlighted below.');
+
+            } else if (r.status === 429) {
+                // ── Rate limited ─────────────────────────────────────────────
+                showBannerError('Too many requests. Please wait a moment and try again.');
+
             } else {
-                showError(r.body.message || 'Something went wrong. Please try again.');
+                // ── Any other server error ────────────────────────────────────
+                showBannerError(r.body.message || 'Something went wrong. Please try again.');
             }
         })
-        .catch(function () {
-            showError('Network error. Please check your connection and try again.');
+        .catch(function (err) {
+            clearTimeout(timer);
+            if (err.name === 'AbortError') {
+                showBannerError('The request timed out. Please check your connection and try again.');
+            } else {
+                showBannerError('Network error. Please check your connection and try again.');
+            }
         })
         .finally(function () {
-            submitBtn.disabled    = false;
-            submitBtn.textContent = 'Send Message';
+            setLoading(false);
         });
     });
 
-    btnNew.addEventListener('click', resetForm);
+    btnNew.addEventListener('click', resetAll);
 }());
 </script>
 
