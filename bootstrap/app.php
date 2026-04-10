@@ -16,6 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'auth.api'      => \App\Http\Middleware\AuthenticateWithApiToken::class,
             'role'          => \App\Http\Middleware\CheckRole::class,
             'allow.iframe'  => \App\Http\Middleware\AllowIframeEmbedding::class,
+            'admin.auth'    => \App\Http\Middleware\AdminAuthenticate::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
