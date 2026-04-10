@@ -19,6 +19,8 @@ Route::get('/widget/embed', [WidgetPageController::class, 'embed'])
     ->name('widget.embed');
 
 // ── Admin auth ────────────────────────────────────────────────────────────────
+Route::get('/admin', fn () => redirect()->route('admin.login'));
+
 Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/login',  [AdminAuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AdminAuthController::class, 'login'])->name('login.post');
