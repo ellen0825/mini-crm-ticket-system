@@ -39,7 +39,7 @@ The entrypoint script automatically:
 - runs `db:seed --force`
 - creates the storage symlink
 
-App is available at **http://localhost:8000** once the container is healthy.
+App is available at **http://localhost:8080** once the container is healthy.
 
 To stop:
 ```bash
@@ -71,18 +71,13 @@ touch database/database.sqlite
 
 php artisan migrate --seed
 php artisan storage:link
-php artisan serve
+php artisan serve --port=8080
 ```
 
-App is available at **http://localhost:8000**.
+App is available at **http://localhost:8080**.
 
-> **Port conflict with Docker Desktop?**
-> Docker Desktop on Windows binds port 8000 by default. If you see "File not found"
-> at `localhost:8000`, run on a different port:
-> ```bash
-> php artisan serve --port=8080
-> ```
-> Then use `http://localhost:8080` for all URLs in this README.
+> **Why port 8080?** Docker Desktop on Windows occupies port 8000 by default,
+> causing a "File not found" error. Port 8080 avoids this conflict.
 
 ---
 
@@ -106,7 +101,7 @@ Key variables in `.env` / `.env.example`:
 
 ## Demo Credentials
 
-### Admin Panel — http://localhost:8000/admin
+### Admin Panel — http://localhost:8080/admin
 
 | Field | Value |
 |---|---|
@@ -370,7 +365,7 @@ Authorization: Bearer <token>
     {
       "id": 1,
       "name": "screenshot.png",
-      "url": "http://localhost:8000/storage/1/screenshot.png",
+      "url": "http://localhost:8080/storage/1/screenshot.png",
       "mime": "image/png",
       "size": 204800
     }
@@ -463,7 +458,7 @@ Valid roles: `admin`, `operator`.
 
 ## Admin Panel
 
-Access at **http://localhost:8000/admin** — session-based, admin role required.
+Access at **http://localhost:8080/admin** — session-based, admin role required.
 
 ### Ticket list `/admin/tickets`
 
