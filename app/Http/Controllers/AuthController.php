@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Hash;
@@ -10,30 +11,30 @@ use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
-    public function register(Request $request)
+    public function register(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'name'     => ['required', 'string', 'max:255'],
             'email'    => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'role'     => ['sometimes', 'in:admin,operator'],
         ]);
 
         $user = User::create([
             'name'      => $validated['name'],
             'email'     => $validated['email'],
             'password'  => $validated['password'],
-            'role'      => $validated['role'] ?? 'operator',
             'api_token' => Str::random(80),
         ]);
 
+        $user->assignRole('operator');
+
         return response()->json([
-            'user'  => $user->only('id', 'name', 'email', 'role'),
+            'user'  => $this->formatUser($user),
             'token' => $user->api_token,
         ], Response::HTTP_CREATED);
     }
 
-    public function login(Request $request)
+    public function login(Request $request): JsonResponse
     {
         $credentials = $request->validate([
             'email'    => ['required', 'string', 'email'],
@@ -49,23 +50,34 @@ class AuthController extends Controller
         $user->forceFill(['api_token' => Str::random(80)])->save();
 
         return response()->json([
-            'user'  => $user->only('id', 'name', 'email', 'role'),
+            'user'  => $this->formatUser($user),
             'token' => $user->api_token,
         ]);
     }
 
-    public function logout(Request $request)
+    public function logout(Request $request): JsonResponse
     {
-        $user = $request->attributes->get('api_user');
-        $user?->forceFill(['api_token' => null])->save();
+        $request->attributes->get('api_user')
+            ?->forceFill(['api_token' => null])
+            ->save();
 
         return response()->json(['message' => 'Logged out.']);
     }
 
-    public function me(Request $request)
+    public function me(Request $request): JsonResponse
     {
-        $user = $request->attributes->get('api_user');
+        return response()->json(
+            $this->formatUser($request->attributes->get('api_user'))
+        );
+    }
 
-        return response()->json($user->only('id', 'name', 'email', 'role'));
+    private function formatUser(User $user): array
+    {
+        return [
+            'id'    => $user->id,
+            'name'  => $user->name,
+            'email' => $user->email,
+            'roles' => $user->getRoleNames(),
+        ];
     }
 }
