@@ -1,28 +1,59 @@
 <?php
 
-use App\Http\Controllers\ArticleController;
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\CommentController;
+use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\TicketController;
+use App\Http\Controllers\UserController;
+use App\Http\Controllers\WidgetController;
 use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| API Routes
+| Public routes
 |--------------------------------------------------------------------------
-|
-| Here is where you can register API routes for your application. These
-| routes are loaded by the RouteServiceProvider and are assigned the "api"
-| middleware group. Make something great!
-|
 */
 
-Route::post('/register', [AuthController::class, 'register']);
-Route::post('/login', [AuthController::class, 'login']);
-Route::post('/logout', [AuthController::class, 'logout']);
-Route::post('/unsubscribe', [AuthController::class, 'unsubscribe']);
+Route::post('/auth/register', [AuthController::class, 'register']);
+Route::post('/auth/login', [AuthController::class, 'login']);
 
-Route::get('/articles', [ArticleController::class, 'index']);
-Route::get('/articles/{article}', [ArticleController::class, 'show']);
-Route::post('/articles', [ArticleController::class, 'store'])->middleware('auth.api');
-Route::post('/articles/{article}/comments', [CommentController::class, 'store'])->middleware('auth.api');
+// Universal website widget — no auth required
+Route::post('/widget/submit', [WidgetController::class, 'submit']);
 
+/*
+|--------------------------------------------------------------------------
+| Authenticated routes (any role)
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware('auth.api')->group(function () {
+    Route::post('/auth/logout', [AuthController::class, 'logout']);
+    Route::get('/auth/me', [AuthController::class, 'me']);
+
+    // Tickets
+    Route::get('/tickets', [TicketController::class, 'index']);
+    Route::get('/tickets/{ticket}', [TicketController::class, 'show']);
+    Route::post('/tickets', [TicketController::class, 'store']);
+    Route::post('/tickets/{ticket}', [TicketController::class, 'update']); // POST for multipart/form-data
+    Route::delete('/tickets/{ticket}', [TicketController::class, 'destroy']);
+    Route::delete('/tickets/{ticket}/attachments/{mediaId}', [TicketController::class, 'deleteAttachment']);
+
+    // Customers
+    Route::get('/customers', [CustomerController::class, 'index']);
+    Route::get('/customers/{customer}', [CustomerController::class, 'show']);
+    Route::post('/customers', [CustomerController::class, 'store']);
+    Route::put('/customers/{customer}', [CustomerController::class, 'update']);
+    Route::delete('/customers/{customer}', [CustomerController::class, 'destroy']);
+});
+
+/*
+|--------------------------------------------------------------------------
+| Admin-only routes
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware('auth.api:admin')->group(function () {
+    Route::get('/users', [UserController::class, 'index']);
+    Route::get('/users/{user}', [UserController::class, 'show']);
+    Route::put('/users/{user}', [UserController::class, 'update']);
+    Route::delete('/users/{user}', [UserController::class, 'destroy']);
+});
