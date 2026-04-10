@@ -76,6 +76,14 @@ php artisan serve
 
 App is available at **http://localhost:8000**.
 
+> **Port conflict with Docker Desktop?**
+> Docker Desktop on Windows binds port 8000 by default. If you see "File not found"
+> at `localhost:8000`, run on a different port:
+> ```bash
+> php artisan serve --port=8080
+> ```
+> Then use `http://localhost:8080` for all URLs in this README.
+
 ---
 
 ## Environment Variables
