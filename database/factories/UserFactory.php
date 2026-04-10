@@ -16,22 +16,11 @@ class UserFactory extends Factory
     public function definition(): array
     {
         return [
-            'name'       => fake()->name(),
-            'email'      => fake()->unique()->safeEmail(),
-            'password'   => static::$password ??= Hash::make('password'),
-            'role'       => 'operator',
-            'api_token'  => Str::random(80),
+            'name'           => fake()->name(),
+            'email'          => fake()->unique()->safeEmail(),
+            'password'       => static::$password ??= Hash::make('password'),
+            'api_token'      => Str::random(80),
             'remember_token' => Str::random(10),
         ];
-    }
-
-    public function admin(): static
-    {
-        return $this->state(['role' => 'admin']);
-    }
-
-    public function operator(): static
-    {
-        return $this->state(['role' => 'operator']);
     }
 }

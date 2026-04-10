@@ -11,10 +11,10 @@ class TicketSeeder extends Seeder
 {
     public function run(): void
     {
-        $operators = User::where('role', 'operator')->get();
+        $operators = User::role('operator')->get();
         $customers = Customer::all();
 
-        // Guarantee at least one ticket per status for the admin to see
+        // Guarantee one ticket per status so the admin always has something to see
         Ticket::factory()->statusNew()->create([
             'customer_id' => $customers->random()->id,
             'assigned_to' => $operators->random()->id,
@@ -37,16 +37,13 @@ class TicketSeeder extends Seeder
             'admin_response' => 'Dark mode is now available in settings.',
         ]);
 
-        // Bulk random tickets distributed across customers and operators
+        // Bulk random tickets distributed across all customers
         foreach ($customers as $customer) {
-            $count    = rand(1, 4);
-            $operator = $operators->random();
-
             Ticket::factory()
-                ->count($count)
+                ->count(rand(1, 4))
                 ->create([
                     'customer_id' => $customer->id,
-                    'assigned_to' => rand(0, 1) ? $operator->id : null,
+                    'assigned_to' => rand(0, 1) ? $operators->random()->id : null,
                 ]);
         }
     }

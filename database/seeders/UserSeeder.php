@@ -10,21 +10,25 @@ class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        // Fixed admin account — predictable credentials for development
-        User::factory()->admin()->create([
+        // Fixed admin — predictable credentials for development
+        $admin = User::factory()->create([
             'name'      => 'Admin',
             'email'     => 'admin@example.com',
             'api_token' => Str::random(80),
         ]);
+        $admin->assignRole('admin');
 
-        // Fixed operator account
-        User::factory()->operator()->create([
+        // Fixed operator
+        $operator = User::factory()->create([
             'name'      => 'Operator',
             'email'     => 'operator@example.com',
             'api_token' => Str::random(80),
         ]);
+        $operator->assignRole('operator');
 
         // Additional random operators
-        User::factory()->operator()->count(3)->create();
+        User::factory()->count(3)->create()->each(
+            fn (User $u) => $u->assignRole('operator')
+        );
     }
 }
